@@ -4,7 +4,12 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/platformfix/podium
-  pullPolicy: IfNotPresent
+  # The default tag below is a floating "latest", not a pinned version, so
+  # IfNotPresent would silently keep serving whatever was cached on the node
+  # even after a newer image has been pushed. Always is the correct default
+  # for a floating tag; switch back to IfNotPresent if you pin image.tag to
+  # an immutable digest or release tag.
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
 
