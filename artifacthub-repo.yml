@@ -1,0 +1,12 @@
+# Artifact Hub repository metadata file.
+# Must live alongside index.yaml on this chart repo's HTTP server (gh-pages),
+# not in the main source branch - see https://artifacthub.io/docs/topics/repositories/
+#
+# repositoryID and owners are filled in once the repo is added via the
+# Artifact Hub control panel (https://artifacthub.io -> sign in -> Control
+# Panel -> Repositories -> Add). Until then this file has no effect.
+#
+# repositoryID: <fill in after adding the repo in Artifact Hub>
+# owners:
+#   - name: <artifact hub username>
+#     email: <email matching the artifact hub account>
