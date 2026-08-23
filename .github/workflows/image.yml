@@ -14,6 +14,11 @@ concurrency:
   group: image-${{ github.ref }}
   cancel-in-progress: true
 
+# Safe floor for any job that doesn't declare its own permissions; the
+# build job below still needs and declares its own broader grants.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: build

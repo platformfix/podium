@@ -8,6 +8,11 @@ on:
       - 'helm/**'
   workflow_dispatch: {}
 
+# Safe floor for any job that doesn't declare its own permissions; the
+# release job below still needs and declares its own broader grants.
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
