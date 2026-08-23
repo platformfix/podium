@@ -14,18 +14,19 @@ Built by [Platform Fix](https://platformfix.com) for our own Kubernetes classes,
 You deploy `podium` once, on your own cluster, and attach to it as your terminal for the session:
 
 ```bash
-helm upgrade --install podium --repo https://platformfix.github.io/podium podium \
+git clone https://github.com/platformfix/podium
+helm upgrade --install podium ./podium/helm/podium \
   --set rbac.cluster.clusterRoles="{cluster-admin}"
 kubectl wait deployment/podium --for=condition=Available
 kubectl attach -it deployment/podium -- login -f k8s
 ```
 
-Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container.
+Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The image itself comes from `ghcr.io/platformfix/podium` (the chart's default), rebuilt on every push to `main`; cloning the repo is only needed for the chart, not the image.
 
 Optionally, turn on the broadcast sidecar and share the resulting URL with your class:
 
 ```bash
-helm upgrade --install podium --repo https://platformfix.github.io/podium podium \
+helm upgrade --install podium ./podium/helm/podium \
   --set rbac.cluster.clusterRoles="{cluster-admin}" \
   --set broadcast.enabled=true \
   --set broadcast.service.type=NodePort
@@ -39,20 +40,14 @@ They'll see a live-updating page showing each command as you run it: no install,
 
 ## Installing
 
-### Helm chart (recommended)
-
 ```bash
-helm upgrade --install podium --repo https://platformfix.github.io/podium podium
+git clone https://github.com/platformfix/podium
+helm upgrade --install podium ./podium/helm/podium
 kubectl wait deployment/podium --for=condition=Available
 kubectl attach -it deployment/podium -- login -f k8s
 ```
 
-### Or apply the chart from this repo directly
-
-```bash
-git clone https://github.com/platformfix/podium
-helm upgrade --install podium ./podium/helm/podium
-```
+There's no hosted Helm repo yet, so the chart is installed straight from a clone rather than `helm repo add`. See [`helm/podium/values.yaml`](helm/podium/values.yaml) for every setting.
 
 ## Configuration
 
