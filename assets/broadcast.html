@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>podium — live terminal</title>
+    <meta charset="utf-8">
+    <style>
+      body {
+        margin: 0;
+        background: #1e1e2e;
+        color: #cdd6f4;
+      }
+      #log {
+        font: 20px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        padding: 1rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      #log div:last-child {
+        background: #f9e2af;
+        color: #1e1e2e;
+      }
+      #status {
+        position: fixed;
+        top: 0;
+        right: 0;
+        padding: 0.5rem 1rem;
+        font: 12px ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">connecting…</div>
+    <div id="log"></div>
+
+    <script>
+      var status = document.getElementById('status');
+      var log = document.getElementById('log');
+      var scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      var ws = new WebSocket(scheme + location.host + '/');
+
+      var echo = function (text) {
+        var line = document.createElement('div');
+        line.textContent = text;
+        log.appendChild(line);
+        line.scrollIntoView();
+      };
+
+      ws.onopen = function () {
+        status.textContent = 'live';
+      };
+      ws.onclose = function () {
+        status.textContent = 'disconnected';
+        echo('-- disconnected, reload to reconnect --');
+      };
+      ws.onmessage = function (event) {
+        echo(event.data);
+      };
+    </script>
+  </body>
+</html>

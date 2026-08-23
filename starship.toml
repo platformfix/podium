@@ -1,0 +1,40 @@
+format = """
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$fill\
+$kubernetes\
+$line_break\
+$character"""
+
+[fill]
+symbol = " "
+
+[directory]
+style = "white"
+read_only = " "
+truncate_to_repo = true
+
+[character]
+success_symbol = "[❯](purple)"
+error_symbol = "[❯](red)"
+vicmd_symbol = "[❮](green)"
+
+[git_branch]
+symbol = "🌱 "
+format = "[$symbol$branch]($style) "
+style = "white"
+
+[git_status]
+format = '([\[$all_status$ahead_behind\]]($style) )'
+style = "cyan"
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "white"
+
+[kubernetes]
+symbol = "⎈ "
+style = "#ffd31d"
+disabled = false

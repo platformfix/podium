@@ -1,0 +1,6 @@
+alias kubectl=kubecolor
+alias k=kubectl
+alias kci="kubectl cluster-info"
+alias tmuxreload="tmux source-file ~/.tmux.conf"
+alias vimreload="source ~/.vimrc"
+alias zshreload="source ~/.zshrc"
