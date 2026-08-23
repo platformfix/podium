@@ -149,6 +149,12 @@ RUN cd /tmp \
  && cd .. \
  && rm -rf kubectx
 
+# A real binary, not a shell alias, so "k" resolves to kubecolor even
+# outside the k8s user's zsh (e.g. "kubectl exec <pod> -- sh"), which
+# doesn't source .aliases the way "login -f k8s" does.
+RUN printf '#!/bin/sh\nexec kubecolor "$@"\n' > /usr/local/bin/k \
+ && chmod +x /usr/local/bin/k
+
 # Create the k8s user and finalize setup.
 RUN echo k8s:x:1000: >> /etc/group \
  && echo k8s:x:1000:1000::/home/k8s:/bin/zsh >> /etc/passwd \

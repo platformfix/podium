@@ -24,6 +24,8 @@ kubectl attach -it deployment/podium -- login -f k8s
 
 Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The chart pulls its image from `ghcr.io/platformfix/podium` by default, rebuilt on every push to `main`.
 
+Use `-- login -f k8s`, not `-- sh` or `-- bash`. `kubectl exec`/`attach` land you in whatever command you give them, and only `login -f k8s` switches to the `k8s` user and loads its shell: zsh, the starship prompt, and the `kubectl`/`k` aliases. `-- sh` drops you into a bare root shell in `/` with none of that configured. The one exception is `k` itself, which is a real binary (not a shell alias), so it resolves to colorized `kubectl` output even from a plain `sh`.
+
 Optionally, turn on the broadcast sidecar and share the resulting URL with your class:
 
 ```bash
