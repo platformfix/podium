@@ -1,7 +1,7 @@
 apiVersion: v2
 name: podium
-version: 0.1.4
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"
 description: A shell in a pod for Kubernetes training, with a self-hosted live-terminal broadcast for students to follow along
 keywords:
   - kubernetes
