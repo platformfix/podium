@@ -1,0 +1,34 @@
+# Values for a per-attendee training cluster: each attendee gets their own
+# dedicated cluster (e.g. via tf-civo-k8s / tf-do-k8s), so cluster-admin and
+# a persistent $HOME are both safe defaults here: there's no other tenant
+# on the cluster to protect against.
+#
+# Usage:
+#   helm upgrade --install podium platformfix/podium \
+#     --namespace podium --create-namespace \
+#     -f examples/attendee-cluster-values.yaml
+#
+# The attendee reaches their shell from the workshop bastion node with:
+#   kubectl attach -it deployment/podium --namespace podium -- login -f k8s
+
+rbac:
+  cluster:
+    clusterRoles:
+      - cluster-admin
+
+persistentVolume:
+  # Long-lived $HOME: survives a Pod restart or eviction for the duration
+  # of a multi-day training, instead of an emptyDir.
+  enabled: true
+  size: 2G
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# The broadcast sidecar is for the trainer's own pod, not each attendee's -
+# leave it off here (the default).

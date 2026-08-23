@@ -72,6 +72,19 @@ The chart is configured entirely through `values.yaml`. The full reference lives
 | `broadcast.service.type` | `ClusterIP` | Set to `NodePort` or `LoadBalancer` to give training participants a reachable URL. |
 | `resources` | `{}` | Set requests/limits, especially memory, so the Pod isn't evicted under node pressure mid-session. |
 
+## Running it for attendees, not just the trainer
+
+If every attendee gets their own dedicated cluster for the training (rather than sharing the trainer's), the same chart works for their shell too: `cluster-admin` and a persistent `$HOME` are both safe defaults there, since there's no other tenant on the cluster to protect against. [`examples/attendee-cluster-values.yaml`](examples/attendee-cluster-values.yaml) has the recommended values for that case (cluster-admin, a 2G PVC, and sane resource limits so the training survives a Pod restart). Install it per attendee into its own namespace; they attach from their bastion node:
+
+```bash
+helm upgrade --install podium platformfix/podium \
+  --namespace podium --create-namespace \
+  -f examples/attendee-cluster-values.yaml
+kubectl attach -it deployment/podium --namespace podium -- login -f k8s
+```
+
+Leave the broadcast sidecar off in this case; it's for the trainer's own pod, not each attendee's.
+
 ## How the broadcast works
 
 `broadcast.enabled=true` adds a second container to the Pod that tails the shell's history file and serves it over a WebSocket, alongside a small static page that renders each line as it arrives. Both the page and the server share the same `$HOME` volume as your shell, so nothing needs wiring together by hand: no `kubectl patch`, no fetching a viewer page from elsewhere. Point participants at the Service's URL (see `kubectl get service podium-broadcast` after install) and they'll see what you type in near-real time.
