@@ -10,6 +10,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   release:
@@ -32,3 +35,24 @@ jobs:
           skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      # Signed provenance for the packaged chart .tgz, uploaded as a GitHub
+      # Release asset alongside it, since chart-releaser doesn't sign
+      # anything itself. Guarded because skip_existing means most pushes to
+      # helm/** (anything that isn't a version bump) leave this directory
+      # empty, and an empty subject-path glob isn't a documented no-op.
+      - name: Check for a new chart package
+        id: check-package
+        run: |
+          if compgen -G ".cr-release-packages/*.tgz" > /dev/null; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Attest chart provenance
+        if: steps.check-package.outputs.found == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: '.cr-release-packages/*.tgz'
+          push-to-registry: false
