@@ -1,0 +1,26 @@
+apiVersion: v1
+entries:
+  podium:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-08-23T21:07:44.761799688Z"
+    description: A shell in a pod for Kubernetes training, with a self-hosted live-terminal
+      broadcast for students to follow along
+    digest: 6ad7a38901efb6c447f0594074a577eaa9b3b2ff10619d8af798c18ec006563e
+    home: https://github.com/platformfix/podium
+    keywords:
+    - kubernetes
+    - training
+    - shell
+    - terminal
+    maintainers:
+    - name: Platform Fix
+      url: https://platformfix.com
+    name: podium
+    sources:
+    - https://github.com/platformfix/podium
+    type: application
+    urls:
+    - https://github.com/platformfix/podium/releases/download/podium-0.1.1/podium-0.1.1.tgz
+    version: 0.1.1
+generated: "2026-08-23T21:07:44.761803495Z"
