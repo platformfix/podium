@@ -9,7 +9,7 @@
 #     -f examples/attendee-cluster-values.yaml
 #
 # The attendee reaches their shell from the workshop bastion node with:
-#   kubectl attach -it deployment/podium --namespace podium -- login -f k8s
+#   kubectl attach -it deployment/podium --namespace podium
 
 rbac:
   cluster:

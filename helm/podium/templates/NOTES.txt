@@ -1,6 +1,6 @@
 Attach to your podium shell:
 
-  kubectl attach -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -- login -f k8s
+  kubectl attach -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }}
 
 Or exec a new one:
 

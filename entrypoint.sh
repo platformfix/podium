@@ -41,7 +41,7 @@ if [ "${SSH_ENABLED:-false}" = "true" ]; then
 fi
 
 echo "SSH is disabled (the default). Attach with:"
-echo "  kubectl attach -it <pod> -- login -f k8s"
+echo "  kubectl attach -it <pod>"
 echo "or exec in directly:"
 echo "  kubectl exec -it <pod> -- login -f k8s"
 exec sleep infinity

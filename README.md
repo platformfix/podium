@@ -19,7 +19,7 @@ helm repo add platformfix https://platformfix.github.io/podium
 helm upgrade --install podium platformfix/podium \
   --set rbac.cluster.clusterRoles="{cluster-admin}"
 kubectl wait deployment/podium --for=condition=Available
-kubectl attach -it deployment/podium -- login -f k8s
+kubectl attach -it deployment/podium
 ```
 
 Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The chart pulls its image from `ghcr.io/platformfix/podium` by default, rebuilt on every push to `main`.
@@ -49,7 +49,7 @@ They'll see a live-updating page showing each command as you run it: no install,
 helm repo add platformfix https://platformfix.github.io/podium
 helm upgrade --install podium platformfix/podium
 kubectl wait deployment/podium --for=condition=Available
-kubectl attach -it deployment/podium -- login -f k8s
+kubectl attach -it deployment/podium
 ```
 
 ### Or straight from a clone
@@ -82,7 +82,7 @@ If every attendee gets their own dedicated cluster for the training (rather than
 helm upgrade --install podium platformfix/podium \
   --namespace podium --create-namespace \
   -f examples/attendee-cluster-values.yaml
-kubectl attach -it deployment/podium --namespace podium -- login -f k8s
+kubectl attach -it deployment/podium --namespace podium
 ```
 
 Leave the broadcast sidecar off in this case; it's for the trainer's own pod, not each attendee's.
