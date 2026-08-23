@@ -20,13 +20,13 @@ RUN cp $(find bin -name crane) /usr/local/bin
 
 # https://github.com/fluxcd/flux2/releases
 FROM builder AS flux
-ARG FLUX_VERSION=2.7.2
+ARG FLUX_VERSION=2.9.4
 RUN helper-curl tar flux \
     https://github.com/fluxcd/flux2/releases/download/v$FLUX_VERSION/flux_${FLUX_VERSION}_linux_@GOARCH.tar.gz
 
 # https://github.com/helm/helm/releases
 FROM builder AS helm
-ARG HELM_VERSION=4.1.4
+ARG HELM_VERSION=4.2.4
 RUN helper-curl tar "--strip-components=1 linux-@GOARCH/helm" \
     https://get.helm.sh/helm-v${HELM_VERSION}-linux-@GOARCH.tar.gz
 
@@ -37,25 +37,25 @@ RUN helper-curl tar k9s \
 
 # https://github.com/kubernetes/kubernetes/releases
 FROM builder AS kubectl
-ARG KUBECTL_VERSION=1.34.1
+ARG KUBECTL_VERSION=1.36.4
 RUN helper-curl tar "--strip-components=3 kubernetes/client/bin/kubectl" \
     https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-@GOARCH.tar.gz
 
 # https://github.com/kubecolor/kubecolor/releases
 FROM builder AS kubecolor
-ARG KUBECOLOR_VERSION=0.5.2
+ARG KUBECOLOR_VERSION=0.6.0
 RUN helper-curl tar kubecolor \
     https://github.com/kubecolor/kubecolor/releases/download/v${KUBECOLOR_VERSION}/kubecolor_${KUBECOLOR_VERSION}_linux_@GOARCH.tar.gz
 
 # https://github.com/stackrox/kube-linter/releases
 FROM builder AS kube-linter
-ARG KUBELINTER_VERSION=v0.7.6
+ARG KUBELINTER_VERSION=v0.8.3
 RUN go install golang.stackrox.io/kube-linter/cmd/kube-linter@$KUBELINTER_VERSION
 RUN cp $(find bin -name kube-linter) /usr/local/bin
 
 # https://github.com/bitnami-labs/sealed-secrets/releases
 FROM builder AS kubeseal
-ARG KUBESEAL_VERSION=0.32.2
+ARG KUBESEAL_VERSION=0.39.1
 RUN helper-curl tar kubeseal \
     https://github.com/bitnami-labs/sealed-secrets/releases/download/v$KUBESEAL_VERSION/kubeseal-$KUBESEAL_VERSION-linux-@GOARCH.tar.gz
 
@@ -72,25 +72,25 @@ RUN helper-curl tar popeye \
 
 # https://github.com/regclient/regclient/releases
 FROM builder AS regctl
-ARG REGCLIENT_VERSION=0.9.2
+ARG REGCLIENT_VERSION=0.11.5
 RUN helper-curl bin regctl \
     https://github.com/regclient/regclient/releases/download/v$REGCLIENT_VERSION/regctl-linux-@GOARCH
 
 # https://github.com/stern/stern/releases
 FROM builder AS stern
-ARG STERN_VERSION=1.33.0
+ARG STERN_VERSION=1.34.0
 RUN helper-curl tar stern \
     https://github.com/stern/stern/releases/download/v${STERN_VERSION}/stern_${STERN_VERSION}_linux_@GOARCH.tar.gz
 
 # https://github.com/vmware-tanzu/velero/releases
 FROM builder AS velero
-ARG VELERO_VERSION=1.17.0
+ARG VELERO_VERSION=1.18.2
 RUN helper-curl tar "--strip-components=1 velero-v${VELERO_VERSION}-linux-@GOARCH/velero" \
     https://github.com/vmware-tanzu/velero/releases/download/v${VELERO_VERSION}/velero-v${VELERO_VERSION}-linux-@GOARCH.tar.gz
 
 # https://github.com/starship/starship/releases
 FROM builder AS starship
-ARG STARSHIP_VERSION=1.24.0
+ARG STARSHIP_VERSION=1.26.0
 RUN helper-curl tar starship \
     https://github.com/starship/starship/releases/download/v${STARSHIP_VERSION}/starship-@UARCH-unknown-linux-musl.tar.gz
 
