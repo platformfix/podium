@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: broadcast-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
