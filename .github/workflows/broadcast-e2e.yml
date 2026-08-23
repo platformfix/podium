@@ -1,0 +1,99 @@
+name: broadcast-e2e
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Build image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          load: true
+          tags: podium:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create kind cluster
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+
+      - name: Load image into kind
+        run: kind load docker-image podium:ci
+
+      - name: Deploy podium with broadcast enabled
+        run: |
+          helm upgrade --install podium helm/podium \
+            --set image.repository=podium \
+            --set image.tag=ci \
+            --set image.pullPolicy=IfNotPresent \
+            --set broadcast.enabled=true \
+            --wait --timeout=90s
+
+      - name: Verify the broadcast page serves
+        run: |
+          kubectl port-forward service/podium-broadcast 18088:1088 &
+          echo $! > /tmp/pf.pid
+          sleep 3
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18088/)
+          if [ "$code" != "200" ]; then
+            echo "Expected HTTP 200 from the broadcast page, got $code"
+            exit 1
+          fi
+
+      - name: Verify a live command reaches the websocket
+        run: |
+          python3 -m pip install --quiet websocket-client
+          python3 - <<'PYEOF'
+          import subprocess, threading, time, sys
+          import websocket
+
+          marker = f"podium-e2e-marker-{int(time.time())}"
+          received = threading.Event()
+
+          def on_message(ws, message):
+              if marker in message:
+                  received.set()
+                  ws.close()
+
+          ws = websocket.WebSocketApp("ws://localhost:18088/", on_message=on_message)
+          thread = threading.Thread(target=ws.run_forever, daemon=True)
+          thread.start()
+
+          time.sleep(2)
+          subprocess.run(
+              ["kubectl", "exec", "deploy/podium", "-c", "podium", "--",
+               "sh", "-c", f"echo ': {int(time.time())}:0;{marker}' >> /home/k8s/.zsh_history"],
+              check=True,
+          )
+
+          if not received.wait(timeout=20):
+              print("Timed out waiting for the marker command to reach the broadcast websocket")
+              sys.exit(1)
+
+          print("Broadcast websocket delivered the live command as expected.")
+          PYEOF
+
+      - name: Show pod state on failure
+        if: failure()
+        run: |
+          kubectl get pods -o wide
+          kubectl describe pod -l app.kubernetes.io/name=podium
+          kubectl logs deploy/podium -c podium --tail=100 || true
+          kubectl logs deploy/podium -c broadcast --tail=100 || true
+
+      - name: Clean up port-forward
+        if: always()
+        run: kill "$(cat /tmp/pf.pid)" 2>/dev/null || true
