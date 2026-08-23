@@ -1,0 +1,32 @@
+Attach to your podium shell:
+
+  kubectl attach -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -- login -f k8s
+
+Or exec a new one:
+
+  kubectl exec -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -- login -f k8s
+
+{{- if .Values.ssh.enabled }}
+
+SSH is enabled. Find how it's exposed with:
+
+  kubectl get service {{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }}
+
+Or port-forward to it:
+
+  kubectl port-forward service/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} 2222:22
+  ssh -l k8s -p 2222 localhost
+{{- end }}
+
+{{- if .Values.broadcast.enabled }}
+
+The live-terminal broadcast is enabled. Find how it's exposed with:
+
+  kubectl get service {{ include "podium.fullname" . }}-broadcast --namespace {{ .Release.Namespace }}
+
+Or port-forward it to view locally:
+
+  kubectl port-forward service/{{ include "podium.fullname" . }}-broadcast --namespace {{ .Release.Namespace }} 1088:{{ .Values.broadcast.service.port }}
+
+Then open http://localhost:1088 and share the equivalent URL with your training participants.
+{{- end }}

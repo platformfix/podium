@@ -1,0 +1,17 @@
+apiVersion: v2
+name: podium
+version: 0.1.0
+appVersion: "0.1.0"
+description: A shell in a pod for Kubernetes training, with a self-hosted live-terminal broadcast for students to follow along
+keywords:
+  - kubernetes
+  - training
+  - shell
+  - terminal
+type: application
+home: https://github.com/platformfix/podium
+sources:
+  - https://github.com/platformfix/podium
+maintainers:
+  - name: Platform Fix
+    url: https://platformfix.com

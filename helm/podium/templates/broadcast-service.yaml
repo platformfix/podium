@@ -1,0 +1,17 @@
+{{- if .Values.broadcast.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "podium.fullname" . }}-broadcast
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.broadcast.service.type }}
+  ports:
+    - port: {{ .Values.broadcast.service.port }}
+      targetPort: broadcast
+      protocol: TCP
+      name: broadcast
+  selector:
+    {{- include "podium.selectorLabels" . | nindent 4 }}
+{{- end }}

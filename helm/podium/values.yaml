@@ -1,0 +1,83 @@
+# Default values for podium.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/platformfix/podium
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+# The main shell service. podium is meant to be attached to
+# (kubectl attach/exec), so this defaults to ClusterIP with no port exposed
+# for SSH unless ssh.enabled is turned on.
+service:
+  type: ClusterIP
+  port: 22
+
+resources: {}
+
+livenessProbe:
+readinessProbe:
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+persistentVolume:
+  ## If true, create and use a PVC for $HOME so the shell's state (and the
+  ## broadcast history file) survives a Pod restart or eviction.
+  enabled: false
+  accessModes:
+    - ReadWriteOnce
+  size: 1G
+  storageClass: null
+
+rbac:
+  enabled: true
+  cluster:
+    ## ClusterRoles to bind to the ServiceAccount, cluster-wide.
+    ## For a teacher cluster you'll typically set this to cluster-admin.
+    clusterRoles: []
+  namespace:
+    clusterRoles: [ view ]
+    roles: []
+
+ssh:
+  ## SSH is off by default: podium is meant to be reached with
+  ## "kubectl attach" or "kubectl exec", not a network-exposed SSH server.
+  ## Turn this on if you need to hand out remote access without kubectl.
+  enabled: false
+  authorized_keys: ""
+  password: ""
+
+broadcast:
+  ## When enabled, adds a sidecar that serves a vendored, self-contained
+  ## live-terminal-broadcast page (no third-party runtime dependency) over
+  ## a WebSocket, and a Service to reach it. Share the resulting URL with
+  ## training participants so they can watch your commands as you type them.
+  enabled: false
+  containerPort: 1088
+  service:
+    type: ClusterIP
+    port: 1088
+  resources: {}

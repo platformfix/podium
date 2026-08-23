@@ -1,0 +1,17 @@
+{{- if .Values.persistentVolume.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "podium.fullname" . }}
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{ .Values.persistentVolume.accessModes | toYaml | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentVolume.size }}
+  {{- with .Values.persistentVolume.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+{{- end }}

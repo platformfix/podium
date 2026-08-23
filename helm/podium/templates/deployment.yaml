@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "podium.fullname" . }}
+  labels:
+    {{- include "podium.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "podium.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "podium.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "podium.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        # The image bakes its default $HOME (zshrc, aliases, starship config)
+        # into /home/k8s. Mounting a volume there would otherwise shadow it
+        # with an empty directory, so seed the volume from the image first.
+        - name: copyhome
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: home
+              mountPath: /copyhome
+          command:
+            - cp
+            - -a
+            - /home/k8s/.
+            - /copyhome
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if eq .Values.ssh.enabled false }}
+          stdin: true
+          tty: true
+          {{- end }}
+          env:
+            - name: HOSTIP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: SSH_ENABLED
+              value: "{{ .Values.ssh.enabled }}"
+            {{- if .Values.ssh.password }}
+            - name: PASSWORD
+              value: "{{ .Values.ssh.password }}"
+            {{- end }}
+            {{- if .Values.ssh.authorized_keys }}
+            - name: AUTHORIZED_KEYS
+              value: |
+                {{ .Values.ssh.authorized_keys | nindent 16 }}
+            {{- end }}
+          {{- if .Values.ssh.enabled }}
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: home
+              mountPath: /home/k8s
+            {{- with .Values.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- if .Values.broadcast.enabled }}
+        - name: broadcast
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/usr/local/bin/broadcast.sh"]
+          env:
+            - name: BROADCAST_PORT
+              value: "{{ .Values.broadcast.containerPort }}"
+            - name: BROADCAST_HISTFILE
+              value: "/home/k8s/.zsh_history"
+          ports:
+            - name: broadcast
+              containerPort: {{ .Values.broadcast.containerPort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.broadcast.resources | nindent 12 }}
+          volumeMounts:
+            - name: home
+              mountPath: /home/k8s
+              readOnly: true
+        {{- end }}
+      volumes:
+        - name: home
+          {{- if .Values.persistentVolume.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "podium.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
