@@ -1,6 +1,7 @@
 # podium
 
 [![image](https://github.com/platformfix/podium/actions/workflows/image.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/image.yml)
+[![broadcast-e2e](https://github.com/platformfix/podium/actions/workflows/broadcast-e2e.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/broadcast-e2e.yml)
 [![commit-lint](https://github.com/platformfix/podium/actions/workflows/commit-lint.yaml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/commit-lint.yaml)
 [![pr-lint](https://github.com/platformfix/podium/actions/workflows/pr-lint.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/pr-lint.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -14,19 +15,19 @@ Built by [Platform Fix](https://platformfix.com) for our own Kubernetes classes,
 You deploy `podium` once, on your own cluster, and attach to it as your terminal for the session:
 
 ```bash
-git clone https://github.com/platformfix/podium
-helm upgrade --install podium ./podium/helm/podium \
+helm repo add platformfix https://platformfix.github.io/podium
+helm upgrade --install podium platformfix/podium \
   --set rbac.cluster.clusterRoles="{cluster-admin}"
 kubectl wait deployment/podium --for=condition=Available
 kubectl attach -it deployment/podium -- login -f k8s
 ```
 
-Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The image itself comes from `ghcr.io/platformfix/podium` (the chart's default), rebuilt on every push to `main`; cloning the repo is only needed for the chart, not the image.
+Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The chart pulls its image from `ghcr.io/platformfix/podium` by default, rebuilt on every push to `main`.
 
 Optionally, turn on the broadcast sidecar and share the resulting URL with your class:
 
 ```bash
-helm upgrade --install podium ./podium/helm/podium \
+helm upgrade --install podium platformfix/podium \
   --set rbac.cluster.clusterRoles="{cluster-admin}" \
   --set broadcast.enabled=true \
   --set broadcast.service.type=NodePort
@@ -40,14 +41,23 @@ They'll see a live-updating page showing each command as you run it: no install,
 
 ## Installing
 
+### From the Helm chart repo (recommended)
+
 ```bash
-git clone https://github.com/platformfix/podium
-helm upgrade --install podium ./podium/helm/podium
+helm repo add platformfix https://platformfix.github.io/podium
+helm upgrade --install podium platformfix/podium
 kubectl wait deployment/podium --for=condition=Available
 kubectl attach -it deployment/podium -- login -f k8s
 ```
 
-There's no hosted Helm repo yet, so the chart is installed straight from a clone rather than `helm repo add`. See [`helm/podium/values.yaml`](helm/podium/values.yaml) for every setting.
+### Or straight from a clone
+
+```bash
+git clone https://github.com/platformfix/podium
+helm upgrade --install podium ./podium/helm/podium
+```
+
+See [`helm/podium/values.yaml`](helm/podium/values.yaml) for every setting.
 
 ## Configuration
 
