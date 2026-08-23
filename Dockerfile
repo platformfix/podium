@@ -198,6 +198,10 @@ RUN ( \
     ) > /home/k8s/versions.txt \
  && chown 1000:1000 /home/k8s/versions.txt
 
+# Pre-create the history file so the broadcast sidecar (which mounts $HOME
+# read-only) has something to tail even before anyone attaches.
+RUN touch /home/k8s/.zsh_history && chown 1000:1000 /home/k8s/.zsh_history
+
 VOLUME /home/k8s
 CMD ["/entrypoint.sh"]
 EXPOSE 22/tcp
