@@ -12,6 +12,9 @@ concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -75,7 +78,7 @@ jobs:
 
       - name: Verify a live command reaches the websocket
         run: |
-          python3 -m pip install --quiet websocket-client
+          python3 -m pip install --quiet websocket-client==1.9.0
           python3 - <<'PYEOF'
           import subprocess, threading, time, sys
           import websocket
