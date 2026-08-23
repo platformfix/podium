@@ -29,9 +29,11 @@ jobs:
 
       - name: Create kind cluster
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        with:
+          cluster_name: podium
 
       - name: Load image into kind
-        run: kind load docker-image podium:ci
+        run: kind load docker-image podium:ci --name podium
 
       - name: Deploy podium with broadcast enabled
         run: |
