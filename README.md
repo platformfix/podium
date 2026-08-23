@@ -1,7 +1,7 @@
 # podium
 
 [![image](https://github.com/platformfix/podium/actions/workflows/image.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/image.yml)
-[![broadcast-e2e](https://github.com/platformfix/podium/actions/workflows/broadcast-e2e.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/broadcast-e2e.yml)
+[![e2e](https://github.com/platformfix/podium/actions/workflows/e2e.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/e2e.yml)
 [![commit-lint](https://github.com/platformfix/podium/actions/workflows/commit-lint.yaml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/commit-lint.yaml)
 [![pr-lint](https://github.com/platformfix/podium/actions/workflows/pr-lint.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/pr-lint.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

@@ -1,4 +1,4 @@
-name: broadcast-e2e
+name: e2e
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - main
 
 concurrency:
-  group: broadcast-e2e-${{ github.ref }}
+  group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -47,6 +47,20 @@ jobs:
             --set image.pullPolicy=IfNotPresent \
             --set broadcast.enabled=true \
             --wait --timeout=90s
+
+      - name: Verify kubectl works from inside the pod as the k8s user
+        run: |
+          # Exercises the actual shipped .zshrc kubeconfig bootstrap, not a
+          # hand-copied duplicate of it - this is what "login -f -p k8s"
+          # ultimately relies on. sudo strips KUBERNETES_SERVICE_HOST/PORT
+          # deliberately, so a pass here proves the file-based kubeconfig
+          # works on its own, without depending on login preserving env.
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H zsh -ic 'kubectl get pods' 2>&1)
+          echo "$out"
+          echo "$out" | grep -q "^NAME" || {
+            echo "kubectl inside the pod did not return a pod list"
+            exit 1
+          }
 
       - name: Verify the broadcast page serves
         run: |
