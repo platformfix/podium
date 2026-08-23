@@ -151,7 +151,7 @@ RUN cd /tmp \
 
 # A real binary, not a shell alias, so "k" resolves to kubecolor even
 # outside the k8s user's zsh (e.g. "kubectl exec <pod> -- sh"), which
-# doesn't source .aliases the way "login -f k8s" does.
+# doesn't source .aliases the way "login -f -p k8s" does.
 RUN printf '#!/bin/sh\nexec kubecolor "$@"\n' > /usr/local/bin/k \
  && chmod +x /usr/local/bin/k
 

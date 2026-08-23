@@ -4,7 +4,7 @@ Attach to your podium shell:
 
 Or exec a new one:
 
-  kubectl exec -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -- login -f k8s
+  kubectl exec -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -- login -f -p k8s
 
 {{- if .Values.ssh.enabled }}
 

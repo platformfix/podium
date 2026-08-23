@@ -24,7 +24,7 @@ kubectl attach -it deployment/podium
 
 Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The chart pulls its image from `ghcr.io/platformfix/podium` by default, rebuilt on every push to `main`.
 
-Use `-- login -f k8s`, not `-- sh` or `-- bash`. `kubectl exec`/`attach` land you in whatever command you give them, and only `login -f k8s` switches to the `k8s` user and loads its shell: zsh, the starship prompt, and the `kubectl`/`k` aliases. `-- sh` drops you into a bare root shell in `/` with none of that configured. The one exception is `k` itself, which is a real binary (not a shell alias), so it resolves to colorized `kubectl` output even from a plain `sh`.
+With `kubectl exec`, use `-- login -f -p k8s`, not `-- sh` or `-- bash`. `kubectl exec` runs whatever command you give it; only `login -f -p k8s` switches to the `k8s` user and loads its shell: zsh, the starship prompt, and the `kubectl`/`k` aliases. `-- sh` drops you into a bare root shell in `/` with none of that configured. The `-p` matters too: BusyBox `login` wipes the environment by default, and without it `kubectl` inside the shell can't find the in-cluster API server. `kubectl attach` doesn't take this problem at all, since it just connects to the shell the entrypoint already started with the environment intact.
 
 Optionally, turn on the broadcast sidecar and share the resulting URL with your class:
 

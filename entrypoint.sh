@@ -8,7 +8,10 @@ set -e
 # the primary, always-available way in.
 
 if tty >/dev/null 2>&1; then
-  exec login -f k8s
+  # -p preserves the environment busybox login would otherwise wipe,
+  # including KUBERNETES_SERVICE_HOST/PORT - without it, kubectl inside
+  # the shell can't find the in-cluster API server at all.
+  exec login -f -p k8s
 fi
 
 if [ "${SSH_ENABLED:-false}" = "true" ]; then
@@ -43,5 +46,5 @@ fi
 echo "SSH is disabled (the default). Attach with:"
 echo "  kubectl attach -it <pod>"
 echo "or exec in directly:"
-echo "  kubectl exec -it <pod> -- login -f k8s"
+echo "  kubectl exec -it <pod> -- login -f -p k8s"
 exec sleep infinity
