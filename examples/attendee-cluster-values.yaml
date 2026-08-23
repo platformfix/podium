@@ -3,13 +3,14 @@
 # a persistent $HOME are both safe defaults here: there's no other tenant
 # on the cluster to protect against.
 #
-# Usage:
+# Usage: this is what "make attendee" applies for you (see the repo's
+# Makefile). To do it by hand instead:
 #   helm upgrade --install podium platformfix/podium \
 #     --namespace podium --create-namespace \
 #     -f examples/attendee-cluster-values.yaml
 #
 # The attendee reaches their shell from the workshop bastion node with:
-#   kubectl attach -it deployment/podium --namespace podium
+#   kubectl attach -it deployment/podium --namespace podium -c podium
 
 rbac:
   cluster:

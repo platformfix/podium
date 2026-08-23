@@ -12,30 +12,31 @@ Built by [Platform Fix](https://platformfix.com) for our own Kubernetes classes,
 
 ## What this is
 
-You deploy `podium` once, on your own cluster, and attach to it as your terminal for the session:
+On your own teacher cluster:
+
+```bash
+git clone https://github.com/platformfix/podium && cd podium
+make presenter
+```
+
+`make presenter` installs the chart with `cluster-admin` and the broadcast sidecar turned on, waits for it to be ready, and attaches you to it, all in one step. Everything you type from there runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The chart pulls its image from `ghcr.io/platformfix/podium` by default, rebuilt on every push to `main`.
+
+That's the same as running the steps by hand:
 
 ```bash
 helm repo add platformfix https://platformfix.github.io/podium
 helm upgrade --install podium platformfix/podium \
-  --set rbac.cluster.clusterRoles="{cluster-admin}"
-kubectl wait deployment/podium --for=condition=Available
-kubectl attach -it deployment/podium
-```
-
-Everything you type runs from inside your own cluster, with `kubectl`, `helm`, and the rest of the toolchain preconfigured. The shell is zsh with a starship prompt, so it looks and feels like a normal terminal rather than a bare container. The chart pulls its image from `ghcr.io/platformfix/podium` by default, rebuilt on every push to `main`.
-
-With `kubectl exec`, use `-- login -f -p k8s`, not `-- sh` or `-- bash`. `kubectl exec` runs whatever command you give it; only `login -f -p k8s` switches to the `k8s` user and loads its shell: zsh, the starship prompt, and the `kubectl`/`k` aliases. `-- sh` drops you into a bare root shell in `/` with none of that configured. The `-p` matters too: BusyBox `login` wipes the environment by default, and without it `kubectl` inside the shell can't find the in-cluster API server. `kubectl attach` doesn't take this problem at all, since it just connects to the shell the entrypoint already started with the environment intact.
-
-Optionally, turn on the broadcast sidecar and share the resulting URL with your class:
-
-```bash
-helm upgrade --install podium platformfix/podium \
+  --namespace podium --create-namespace \
   --set rbac.cluster.clusterRoles="{cluster-admin}" \
   --set broadcast.enabled=true \
   --set broadcast.service.type=NodePort
+kubectl wait deployment/podium --namespace podium --for=condition=Available
+kubectl attach -it deployment/podium --namespace podium -c podium
 ```
 
-They'll see a live-updating page showing each command as you run it: no install, no login, just the URL. The page and its WebSocket server are both vendored in this repo's own image; nothing is fetched from a third party at runtime.
+Once attached, share the broadcast page's URL with your class: they'll see a live-updating page showing each command as you run it, no install, no login, just the URL. The page and its WebSocket server are both vendored in this repo's own image; nothing is fetched from a third party at runtime.
+
+With `kubectl exec`, use `-- login -f -p k8s`, not `-- sh` or `-- bash`. `kubectl exec` runs whatever command you give it; only `login -f -p k8s` switches to the `k8s` user and loads its shell: zsh, the starship prompt, and the `kubectl`/`k` aliases. `-- sh` drops you into a bare root shell in `/` with none of that configured. The `-p` matters too: BusyBox `login` wipes the environment by default, and without it `kubectl` inside the shell can't find the in-cluster API server. `kubectl attach` doesn't have this problem at all, since it just connects to the shell the entrypoint already started with the environment intact.
 
 ## Why not just use shpod?
 
@@ -43,20 +44,36 @@ They'll see a live-updating page showing each command as you run it: no install,
 
 ## Installing
 
-### From the Helm chart repo (recommended)
+### `make presenter` / `make attendee`
+
+The Makefile wraps the full install, from a clean clone to being attached, for the two people who actually run this: you, and each attendee.
+
+| Target | Who it's for | What it sets |
+|---|---|---|
+| `make presenter` | You, on your teacher cluster | `cluster-admin`, broadcast sidecar on (`NodePort`) |
+| `make attendee` | Each attendee, on their own dedicated cluster | `cluster-admin`, a persistent `$HOME` (see [`examples/attendee-cluster-values.yaml`](examples/attendee-cluster-values.yaml)), broadcast off |
+
+```bash
+git clone https://github.com/platformfix/podium && cd podium
+make attendee
+```
+
+That's the whole onboarding step for an attendee: clone, `make attendee`, and they're attached to a ready-to-use shell. Both targets add the Helm chart repo automatically, and both install into a `podium` namespace rather than whatever the cluster's default happens to be, so podium's footprint stays in one predictable, easy-to-clean-up place. Override `RELEASE_NAME`, `NAMESPACE`, or `HELM_REPO_URL` as `make` variables if you need something other than the defaults.
+
+### By hand, from the chart repo
 
 ```bash
 helm repo add platformfix https://platformfix.github.io/podium
-helm upgrade --install podium platformfix/podium
-kubectl wait deployment/podium --for=condition=Available
-kubectl attach -it deployment/podium
+helm upgrade --install podium platformfix/podium --namespace podium --create-namespace
+kubectl wait deployment/podium --namespace podium --for=condition=Available
+kubectl attach -it deployment/podium --namespace podium -c podium
 ```
 
-### Or straight from a clone
+### Or straight from a clone, without the chart repo
 
 ```bash
 git clone https://github.com/platformfix/podium
-helm upgrade --install podium ./podium/helm/podium
+helm upgrade --install podium ./podium/helm/podium --namespace podium --create-namespace
 ```
 
 See [`helm/podium/values.yaml`](helm/podium/values.yaml) for every setting.
@@ -76,16 +93,7 @@ The chart is configured entirely through `values.yaml`. The full reference lives
 
 ## Running it for attendees, not just the trainer
 
-If every attendee gets their own dedicated cluster for the training (rather than sharing the trainer's), the same chart works for their shell too: `cluster-admin` and a persistent `$HOME` are both safe defaults there, since there's no other tenant on the cluster to protect against. [`examples/attendee-cluster-values.yaml`](examples/attendee-cluster-values.yaml) has the recommended values for that case (cluster-admin, a 2G PVC, and sane resource limits so the training survives a Pod restart). Install it per attendee into its own namespace; they attach from their bastion node:
-
-```bash
-helm upgrade --install podium platformfix/podium \
-  --namespace podium --create-namespace \
-  -f examples/attendee-cluster-values.yaml
-kubectl attach -it deployment/podium --namespace podium
-```
-
-Leave the broadcast sidecar off in this case; it's for the trainer's own pod, not each attendee's.
+`make attendee` (above) is the actual onboarding step: an attendee clones the repo on their workshop bastion node and runs it once their cluster is up. It works because every attendee gets their own dedicated cluster for the training, rather than sharing the trainer's, so `cluster-admin` and a persistent `$HOME` are both safe defaults there: there's no other tenant on that cluster to protect against. The broadcast sidecar stays off for attendees; it's for the trainer's own pod, so their class can watch, not something each attendee needs themselves.
 
 ## How the broadcast works
 

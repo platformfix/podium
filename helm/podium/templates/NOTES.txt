@@ -1,10 +1,10 @@
 Attach to your podium shell:
 
-  kubectl attach -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }}
+  kubectl attach -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -c podium
 
 Or exec a new one:
 
-  kubectl exec -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -- login -f -p k8s
+  kubectl exec -it deployment/{{ include "podium.fullname" . }} --namespace {{ .Release.Namespace }} -c podium -- login -f -p k8s
 
 {{- if .Values.ssh.enabled }}
 
