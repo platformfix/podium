@@ -2,6 +2,8 @@
 
 [![image](https://github.com/platformfix/podium/actions/workflows/image.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/image.yml)
 [![commit-lint](https://github.com/platformfix/podium/actions/workflows/commit-lint.yaml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/commit-lint.yaml)
+[![pr-lint](https://github.com/platformfix/podium/actions/workflows/pr-lint.yml/badge.svg)](https://github.com/platformfix/podium/actions/workflows/pr-lint.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A shell in a pod for delivering Kubernetes training, with a self-hosted live-terminal broadcast so participants can watch your commands as you type them.
 
