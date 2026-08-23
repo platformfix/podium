@@ -1,6 +1,7 @@
-FROM --platform=$BUILDPLATFORM golang:alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS builder
 RUN apk add curl git make
 ARG BUILDARCH TARGETARCH
+# hadolint ignore=DL3044
 ENV BUILDARCH=$BUILDARCH \
     CGO_ENABLED=0 \
     GOARCH=$TARGETARCH \
@@ -15,7 +16,8 @@ RUN helper-curl bin argocd \
 
 # https://github.com/google/go-containerregistry/tree/main/cmd/crane
 FROM builder AS crane
-RUN go install github.com/google/go-containerregistry/cmd/crane@latest
+ARG CRANE_VERSION=v0.21.9
+RUN go install github.com/google/go-containerregistry/cmd/crane@$CRANE_VERSION
 RUN cp $(find bin -name crane) /usr/local/bin
 
 # https://github.com/fluxcd/flux2/releases
@@ -105,7 +107,7 @@ RUN curl -fsSL -o /tmp/websocketd.zip \
  && chmod +x /usr/local/bin/websocketd \
  && rm /tmp/websocketd.zip
 
-FROM alpine AS podium
+FROM alpine@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS podium
 ENV COMPLETIONS=/usr/share/bash-completion/completions
 RUN apk add --no-cache bash bash-completion curl fzf gettext git iputils jq \
     libintl ncurses openssh openssl sudo tmux tree unzip vim yq zsh
