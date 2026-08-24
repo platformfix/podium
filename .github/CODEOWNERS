@@ -1,2 +1,4 @@
-# Every change needs review from a repo owner before it can merge.
+# Names the repo owner for GitHub's own UI (review requests, blame).
+# The branch ruleset does NOT currently require owner review before merge —
+# see CLAUDE.md for why. This file's effect is currently informational only.
 * @swade1987
