@@ -17,17 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     # Dependabot's own commit messages don't pass commitlint's stricter
     # subject-case/body-line-length rules (its PR titles do - pr-lint still
-    # runs for these). A job skipped by its own "if" reports as passing for
-    # required-status-check purposes, so this exempts Dependabot without
-    # weakening the check for anyone else.
-    if: github.actor != 'dependabot[bot]'
+    # runs for these). Keyed on the PR's actual author, not github.actor -
+    # a manual "update branch" (e.g. via the API, to satisfy the strict
+    # required-status-checks policy) makes the triggering actor whoever
+    # called it, not dependabot[bot], even though the PR's own commits are
+    # still Dependabot's. A job skipped by its own "if" reports as passing
+    # for required-status-check purposes, so this exempts Dependabot
+    # without weakening the check for anyone else.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     steps:
       # Plain pull_request already checks out the PR's own commits (unlike
       # pull_request_target, which defaults to the base branch), and gets a
       # read-only token for forked PRs instead of one scoped to this repo -
       # this job never needs write access, so there's no reason to run it
       # with pull_request_target's broader trust model.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6
+      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
