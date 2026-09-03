@@ -77,22 +77,61 @@ jobs:
           # all present and working together - a broken install (see the
           # Dockerfile's fastmcp<4 pin, needed because kubectl-mcp-server's
           # own dependency pin has no upper bound) fails here loudly instead
-          # of silently on a workshop day.
+          # of silently later.
           out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c 'kubectl-mcp-serve doctor' 2>&1)
           echo "$out"
-          echo "$out" | grep -q "All checks passed" || {
+          if ! echo "$out" | grep -q "All checks passed"; then
             echo "kubectl-mcp-server doctor reported a failed dependency check"
             exit 1
-          }
+          fi
 
-          # A real functional call, not just that the binary exists - proves
-          # kubectl-mcp-server actually talks to this cluster through
+          # Real functional calls against a real workload, not just that the
+          # binary starts: a read against a healthy pod, a read against one
+          # that failed to start, a write that changes cluster state, and a
+          # schema lookup - the tool's main capability classes, all through
           # podium's own in-cluster credentials, the same as an AI client
-          # would live.
+          # would use live.
+          kubectl create deployment mcp-e2e-app --image=nginx:alpine --replicas=1
+          kubectl wait --for=condition=available --timeout=60s deployment/mcp-e2e-app
+
           out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call get_pods '{\"namespace\":\"default\"}'" 2>&1)
           echo "$out"
-          if ! echo "$out" | grep -qi 'success.*true' || ! echo "$out" | grep -q 'podium-'; then
-            echo "kubectl-mcp-server did not find podium's own pod via get_pods"
+          if ! echo "$out" | grep -qi 'success.*true' || ! echo "$out" | grep -q 'mcp-e2e-app'; then
+            echo "kubectl-mcp-server did not find a healthy pod via get_pods"
+            exit 1
+          fi
+
+          kubectl set image deployment/mcp-e2e-app nginx=nginx:this-tag-does-not-exist
+          timeout 40 bash -c 'until kubectl get pods -l app=mcp-e2e-app -o jsonpath="{.items[*].status.containerStatuses[*].state.waiting.reason}" 2>/dev/null | grep -q "ErrImagePull\|ImagePullBackOff"; do sleep 2; done'
+          broken_pod=$(kubectl get pods -l app=mcp-e2e-app -o json | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)
+          for p in d["items"]:
+              for cs in p["status"].get("containerStatuses", []):
+                  if cs.get("state", {}).get("waiting", {}).get("reason") in ("ErrImagePull", "ImagePullBackOff"):
+                      print(p["metadata"]["name"])
+                      sys.exit(0)
+          ')
+
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call diagnose_pod_crash '{\"pod_name\":\"$broken_pod\",\"namespace\":\"default\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'ErrImagePull\|ImagePullBackOff'; then
+            echo "kubectl-mcp-server did not correctly diagnose a pod that failed to start"
+            exit 1
+          fi
+
+          kubectl set image deployment/mcp-e2e-app nginx=nginx:alpine
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call scale_deployment '{\"name\":\"mcp-e2e-app\",\"replicas\":3,\"namespace\":\"default\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'success.*true'; then
+            echo "kubectl-mcp-server could not scale a deployment"
+            exit 1
+          fi
+
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call kubectl_explain '{\"resource\":\"deployment.spec.template.spec.containers.readinessProbe\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'success.*true'; then
+            echo "kubectl-mcp-server could not explain a resource field"
             exit 1
           fi
 
