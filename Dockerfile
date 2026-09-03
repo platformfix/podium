@@ -110,7 +110,35 @@ RUN curl -fsSL -o /tmp/websocketd.zip \
 FROM alpine@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS podium
 ENV COMPLETIONS=/usr/share/bash-completion/completions
 RUN apk add --no-cache bash bash-completion curl fzf gettext git iputils jq \
-    libintl ncurses openssh openssl sudo tmux tree unzip vim yq zsh
+    libintl ncurses openssh openssl python3 py3-pip sudo tmux tree unzip vim yq zsh
+
+# https://github.com/rohitg00/kubectl-mcp-server
+#
+# Installed directly in this stage, not as its own "FROM builder AS X" stage
+# like the tools above - those are all statically-linked Go binaries that
+# copy cleanly between stages; a Python venv is dynamically linked against
+# the interpreter and shared libraries of whatever stage built it, so
+# building it anywhere other than this final image (and copying it in) risks
+# a musl/libc mismatch at runtime. Building it here, against this stage's own
+# python3, sidesteps that entirely.
+#
+# fastmcp is pinned below <4 because kubectl-mcp-server's own dependency pin
+# (fastmcp>=3.0.0b1) has no upper bound: an unconstrained install resolves
+# fastmcp 4.x, which pulls in a breaking mcp 2.x rewrite that
+# kubectl_mcp_tool's own code can't import - the tool never starts. Both
+# versions pinned exactly (not just fastmcp's ceiling) so a new
+# kubectl-mcp-server release can't reintroduce a break like that one
+# silently; Dependabot will open a PR to review instead. Confirmed working
+# 2026-09-03 against a real cluster - see platformfix/k8s-training's
+# slides/ai-demo/ai-demo.migration-notes.md for the full dry-run, including
+# a real bug found in kubectl-mcp-server's own --disable-destructive flag
+# (it blocks every write, not just deletes - not something this image can
+# fix, just something worth knowing before relying on it live).
+ARG KUBECTL_MCP_SERVER_VERSION=1.24.0
+RUN python3 -m venv /opt/kubectl-mcp-server \
+ && /opt/kubectl-mcp-server/bin/pip install --no-cache-dir \
+    "kubectl-mcp-server==${KUBECTL_MCP_SERVER_VERSION}" "fastmcp<4" \
+ && ln -s /opt/kubectl-mcp-server/bin/kubectl-mcp-serve /usr/local/bin/kubectl-mcp-serve
 
 COPY --from=argocd      /usr/local/bin/argocd         /usr/local/bin
 COPY --from=crane       /usr/local/bin/crane          /usr/local/bin
@@ -197,6 +225,7 @@ RUN ( \
     echo "kubecolor $(kubecolor --kubecolor-version)" ;\
     echo "kubectl $(kubectl version --client | head -n1)" ;\
     echo "kube-linter $(kube-linter version)" ;\
+    echo "kubectl-mcp-server $(kubectl-mcp-serve version)" ;\
     kubeseal --version ;\
     echo "kustomize $(kustomize version | head -n1)" ;\
     echo "popeye $(popeye version | grep Version)" ;\

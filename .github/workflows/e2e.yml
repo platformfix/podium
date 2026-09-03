@@ -44,11 +44,17 @@ jobs:
 
       - name: Deploy podium with broadcast enabled
         run: |
+          # rbac.cluster.clusterRoles matches what `make presenter` actually
+          # sets (see the Makefile) - the chart's own default RBAC (a
+          # namespace-scoped view role) is leaner than any real deployment
+          # of this image, and kubectl-mcp-server's own cluster-wide checks
+          # below need the real permission shape to mean anything.
           helm upgrade --install podium helm/podium \
             --set image.repository=podium \
             --set image.tag=ci \
             --set image.pullPolicy=IfNotPresent \
             --set broadcast.enabled=true \
+            --set rbac.cluster.clusterRoles={cluster-admin} \
             --wait --timeout=90s
 
       - name: Verify kubectl works from inside the pod as the k8s user
@@ -64,6 +70,70 @@ jobs:
             echo "kubectl inside the pod did not return a pod list"
             exit 1
           }
+
+      - name: Verify kubectl-mcp-server works from inside the pod
+        run: |
+          # doctor checks kubectl/helm/the in-cluster kubeconfig/fastmcp are
+          # all present and working together - a broken install (see the
+          # Dockerfile's fastmcp<4 pin, needed because kubectl-mcp-server's
+          # own dependency pin has no upper bound) fails here loudly instead
+          # of silently later.
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c 'kubectl-mcp-serve doctor' 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "All checks passed"; then
+            echo "kubectl-mcp-server doctor reported a failed dependency check"
+            exit 1
+          fi
+
+          # Real functional calls against a real workload, not just that the
+          # binary starts: a read against a healthy pod, a read against one
+          # that failed to start, a write that changes cluster state, and a
+          # schema lookup - the tool's main capability classes, all through
+          # podium's own in-cluster credentials, the same as an AI client
+          # would use live.
+          kubectl create deployment mcp-e2e-app --image=nginx:alpine --replicas=1
+          kubectl wait --for=condition=available --timeout=60s deployment/mcp-e2e-app
+
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call get_pods '{\"namespace\":\"default\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'success.*true' || ! echo "$out" | grep -q 'mcp-e2e-app'; then
+            echo "kubectl-mcp-server did not find a healthy pod via get_pods"
+            exit 1
+          fi
+
+          kubectl set image deployment/mcp-e2e-app nginx=nginx:this-tag-does-not-exist
+          timeout 40 bash -c 'until kubectl get pods -l app=mcp-e2e-app -o jsonpath="{.items[*].status.containerStatuses[*].state.waiting.reason}" 2>/dev/null | grep -q "ErrImagePull\|ImagePullBackOff"; do sleep 2; done'
+          broken_pod=$(kubectl get pods -l app=mcp-e2e-app -o json | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)
+          for p in d["items"]:
+              for cs in p["status"].get("containerStatuses", []):
+                  if cs.get("state", {}).get("waiting", {}).get("reason") in ("ErrImagePull", "ImagePullBackOff"):
+                      print(p["metadata"]["name"])
+                      sys.exit(0)
+          ')
+
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call diagnose_pod_crash '{\"pod_name\":\"$broken_pod\",\"namespace\":\"default\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'ErrImagePull\|ImagePullBackOff'; then
+            echo "kubectl-mcp-server did not correctly diagnose a pod that failed to start"
+            exit 1
+          fi
+
+          kubectl set image deployment/mcp-e2e-app nginx=nginx:alpine
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call scale_deployment '{\"name\":\"mcp-e2e-app\",\"replicas\":3,\"namespace\":\"default\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'success.*true'; then
+            echo "kubectl-mcp-server could not scale a deployment"
+            exit 1
+          fi
+
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call kubectl_explain '{\"resource\":\"deployment.spec.template.spec.containers.readinessProbe\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'success.*true'; then
+            echo "kubectl-mcp-server could not explain a resource field"
+            exit 1
+          fi
 
       - name: Verify the broadcast page serves
         run: |

@@ -100,6 +100,7 @@ Alpine-based, multi-arch (`amd64`/`arm64`), built and published to `ghcr.io/plat
 - kubeseal, crane, regctl
 - kubecolor, jq, yq, git, fzf, vim, tmux
 - zsh + starship
+- [kubectl-mcp-server](https://github.com/rohitg00/kubectl-mcp-server), so an MCP-capable AI client can operate the cluster through the pod's own credentials
 
 Run `cat ~/versions.txt` inside the pod for exact installed versions.
 
