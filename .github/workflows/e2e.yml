@@ -44,11 +44,17 @@ jobs:
 
       - name: Deploy podium with broadcast enabled
         run: |
+          # rbac.cluster.clusterRoles matches what `make presenter` actually
+          # sets (see the Makefile) - the chart's own default RBAC (a
+          # namespace-scoped view role) is leaner than any real deployment
+          # of this image, and kubectl-mcp-server's own cluster-wide checks
+          # below need the real permission shape to mean anything.
           helm upgrade --install podium helm/podium \
             --set image.repository=podium \
             --set image.tag=ci \
             --set image.pullPolicy=IfNotPresent \
             --set broadcast.enabled=true \
+            --set rbac.cluster.clusterRoles={cluster-admin} \
             --wait --timeout=90s
 
       - name: Verify kubectl works from inside the pod as the k8s user
@@ -64,6 +70,31 @@ jobs:
             echo "kubectl inside the pod did not return a pod list"
             exit 1
           }
+
+      - name: Verify kubectl-mcp-server works from inside the pod
+        run: |
+          # doctor checks kubectl/helm/the in-cluster kubeconfig/fastmcp are
+          # all present and working together - a broken install (see the
+          # Dockerfile's fastmcp<4 pin, needed because kubectl-mcp-server's
+          # own dependency pin has no upper bound) fails here loudly instead
+          # of silently on a workshop day.
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c 'kubectl-mcp-serve doctor' 2>&1)
+          echo "$out"
+          echo "$out" | grep -q "All checks passed" || {
+            echo "kubectl-mcp-server doctor reported a failed dependency check"
+            exit 1
+          }
+
+          # A real functional call, not just that the binary exists - proves
+          # kubectl-mcp-server actually talks to this cluster through
+          # podium's own in-cluster credentials, the same as an AI client
+          # would live.
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H sh -c "kubectl-mcp-serve call get_pods '{\"namespace\":\"default\"}'" 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -qi 'success.*true' || ! echo "$out" | grep -q 'podium-'; then
+            echo "kubectl-mcp-server did not find podium's own pod via get_pods"
+            exit 1
+          fi
 
       - name: Verify the broadcast page serves
         run: |
