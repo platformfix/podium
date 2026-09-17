@@ -71,6 +71,24 @@ jobs:
             exit 1
           }
 
+      - name: Verify kubectl and helm shell completion register for the k8s user
+        run: |
+          # Exercises the actual shipped zshrc/aliases, not a hand-copied
+          # duplicate of them. Completion registration in zsh's _comps
+          # associative array is the observable signal that `source <(...
+          # completion zsh)` and each compdef actually ran without error -
+          # a real signal a mocked/simulated shell can't fake, and stronger
+          # than the process just exiting 0.
+          out=$(kubectl exec deploy/podium -c podium -- sudo -u k8s -H zsh -ic \
+            'print -l ${(k)_comps[(I)kubectl|kubecolor|k|helm]}' 2>&1)
+          echo "$out"
+          for cmd in kubectl kubecolor k helm; do
+            echo "$out" | grep -qx "$cmd" || {
+              echo "no zsh completion registered for '$cmd'"
+              exit 1
+            }
+          done
+
       - name: Verify kubectl-mcp-server works from inside the pod
         run: |
           # doctor checks kubectl/helm/the in-cluster kubeconfig/fastmcp are
