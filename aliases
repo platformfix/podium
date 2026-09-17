@@ -1,6 +1,8 @@
 alias kubectl=kubecolor
 alias k=kubectl
 alias kci="kubectl cluster-info"
+alias kc='kubectl --context'
+alias kn='kubectl --namespace'
 alias tmuxreload="tmux source-file ~/.tmux.conf"
 alias vimreload="source ~/.vimrc"
 alias zshreload="source ~/.zshrc"

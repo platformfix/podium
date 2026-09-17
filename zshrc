@@ -45,6 +45,11 @@ autoload -Uz compinit && compinit -C
 if command -v kubectl >/dev/null 2>&1; then
   source <(kubectl completion zsh)
   compdef kubecolor=kubectl
+  compdef k=kubectl
+fi
+
+if command -v helm >/dev/null 2>&1; then
+  source <(helm completion zsh)
 fi
 
 if command -v starship >/dev/null 2>&1; then
