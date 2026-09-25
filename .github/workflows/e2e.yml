@@ -202,6 +202,49 @@ jobs:
           print("Broadcast websocket delivered the live command as expected.")
           PYEOF
 
+      - name: Verify a Pod restart on a PVC-backed $HOME rebuilds kubeconfig from its own token
+        run: |
+          # Regression test: zshrc only (re)builds ~/.kube/config when the
+          # file is missing, so with $HOME on a PVC (persistentVolume.enabled)
+          # the previous Pod's kubeconfig used to survive its deletion and
+          # get reused by the next Pod, whose own freshly-projected
+          # ServiceAccount token was minted but never touched - breaking
+          # kubectl after every restart. The chart's preStop hook now removes
+          # it before the container terminates so the next Pod always
+          # rebuilds from its own token.
+          helm upgrade podium helm/podium \
+            --set image.repository=podium \
+            --set image.tag=ci \
+            --set image.pullPolicy=IfNotPresent \
+            --set broadcast.enabled=true \
+            --set rbac.cluster.clusterRoles={cluster-admin} \
+            --set persistentVolume.enabled=true \
+            --wait --timeout=90s
+
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=podium --timeout=60s
+          old_pod=$(kubectl get pod -l app.kubernetes.io/name=podium -o jsonpath='{.items[0].metadata.name}')
+          kubectl delete pod "$old_pod" --wait=true
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=podium --timeout=60s
+          new_pod=$(kubectl get pod -l app.kubernetes.io/name=podium -o jsonpath='{.items[0].metadata.name}')
+
+          out=$(kubectl exec "$new_pod" -c podium -- sh -c '
+            kcfg_token=$(grep -o "token: .*" /home/k8s/.kube/config 2>/dev/null | awk "{print \$2}")
+            sa_token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            [ "$kcfg_token" = "$sa_token" ] && echo MATCH || echo MISMATCH
+          ')
+          echo "$out"
+          echo "$out" | grep -q MATCH || {
+            echo "kubeconfig on the restarted Pod does not match its own ServiceAccount token"
+            exit 1
+          }
+
+          out=$(kubectl exec "$new_pod" -c podium -- sudo -u k8s -H zsh -ic 'kubectl get pods' 2>&1)
+          echo "$out"
+          echo "$out" | grep -q "^NAME" || {
+            echo "kubectl did not work from inside the restarted Pod"
+            exit 1
+          }
+
       - name: Show pod state on failure
         if: failure()
         run: |
