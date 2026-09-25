@@ -79,6 +79,17 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          # Only matters when persistentVolume.enabled puts $HOME on a PVC:
+          # zshrc only (re)builds ~/.kube/config when the file is missing, so
+          # a kubeconfig built from a pod's ServiceAccount token would
+          # otherwise survive that pod's deletion on the PVC and get reused
+          # by the next pod, whose own freshly-projected token is minted but
+          # never touched. Deleting it here forces the next pod to rebuild
+          # from its own token instead of inheriting the previous one's.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["rm", "-f", "/home/k8s/.kube/config"]
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
