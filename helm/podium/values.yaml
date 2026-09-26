@@ -64,7 +64,7 @@ rbac:
     ## For a teacher cluster you'll typically set this to cluster-admin.
     clusterRoles: []
   namespace:
-    clusterRoles: [ view ]
+    clusterRoles: [view]
     roles: []
 
 ssh:

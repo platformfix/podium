@@ -1,0 +1,11 @@
+# See https://github.com/helm/chart-testing#configuration
+chart-dirs:
+  - helm
+check-version-increment: true
+target-branch: main
+validate-chart-schema: true
+validate-yaml: true
+# ct's maintainer check assumes maintainers[].name is a GitHub username and
+# hits api.github.com/users/<name> - "Platform Fix" is a business name, not
+# an account, so this 404s every run regardless of chart correctness.
+validate-maintainers: false
