@@ -1,0 +1,42 @@
+name: helm-lint
+permissions: {}
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+
+concurrency:
+  group: helm-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  helm-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: Azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          # Matches the Helm version this repo's own Dockerfile installs
+          # (HELM_VERSION), so CI lints with the same Helm that ships.
+          version: v4.2.4
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.x'
+          check-latest: true
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
+
+      - name: Run chart-testing (lint)
+        run: ct lint --config .github/linters/ct.yaml
