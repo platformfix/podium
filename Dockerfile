@@ -107,7 +107,7 @@ RUN curl -fsSL -o /tmp/websocketd.zip \
  && chmod +x /usr/local/bin/websocketd \
  && rm /tmp/websocketd.zip
 
-FROM alpine@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS podium
+FROM alpine@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS podium
 ENV COMPLETIONS=/usr/share/bash-completion/completions
 RUN apk add --no-cache bash bash-completion curl fzf gettext git iputils jq \
     libintl ncurses openssh openssl python3 py3-pip sudo tmux tree unzip vim yq zsh
