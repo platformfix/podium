@@ -1,12 +1,17 @@
 name: helm-lint
 permissions: {}
 
+# No `paths:` filter, deliberately: this check is required on main (see the
+# branch ruleset), and a required check that's path-filtered never reports
+# for a PR outside that path, which GitHub then blocks on forever waiting
+# for a status that will never arrive. ct itself already no-ops cleanly
+# ("No chart changes detected") when a PR doesn't touch helm/, so running
+# unconditionally costs a few extra seconds of setup on unrelated PRs and
+# nothing else.
 on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'helm/**'
 
 concurrency:
   group: helm-lint-${{ github.ref }}
